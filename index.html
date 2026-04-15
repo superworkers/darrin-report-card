@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sales Report Card</title>
+    <meta name="description" content="A 7-question intake that grades your sales foundation." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BioRhyme:wght@700&family=DM+Sans:wght@400;500;700&display=swap" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header id="topbar">
+      <div class="brand">Darrin</div>
+      <div class="tagline">Sales Report Card</div>
+      <button class="button button-ghost" id="header-restart" type="button">Start over</button>
+    </header>
+
+    <main id="app">
+      <section id="intro" class="view">
+        <h1>How strong is your sales foundation?</h1>
+        <p class="lede">Answer 7 quick questions. Get a graded report card with specific feedback on where you stand and what to sharpen next.</p>
+        <button class="button button-primary" id="start">Start</button>
+        <button class="button button-ghost" id="resume" hidden>Resume last session</button>
+      </section>
+
+      <section id="intake" class="view hidden">
+        <div id="progress"><div id="progress-bar"></div></div>
+        <div id="step-counter"></div>
+        <div id="question"></div>
+        <div id="field"></div>
+        <div id="nav">
+          <button class="button button-ghost" id="back">Back</button>
+          <div class="nav-right">
+            <button class="button button-ghost" id="simulate" title="Generate a demo answer">✨ Simulate</button>
+            <button class="button button-primary" id="next">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="report" class="view hidden">
+        <div id="report-header">
+          <div id="overall">
+            <div class="score-big" id="overall-score">
+              <div class="score-letter" id="score-letter">—</div>
+              <div class="score-num"><span id="score-value">—</span><span class="score-total">/100</span></div>
+            </div>
+            <div>
+              <div class="eyebrow">Brand Clarity Score</div>
+              <h1>Your Report Card</h1>
+              <p id="overall-summary" class="lede"></p>
+              <p id="benchmark" class="benchmark"></p>
+            </div>
+          </div>
+          <button class="button button-ghost" id="restart">Start over</button>
+        </div>
+        <div id="cards"></div>
+
+        <div id="cta">
+          <div id="cta-headline">
+            <h2 id="cta-title">Here's what you need next</h2>
+            <p id="cta-sub" class="lede"></p>
+          </div>
+
+          <div id="tiers">
+            <div class="tier">
+              <button class="video" type="button" aria-label="Play overview video">
+                <span class="play">▶</span>
+                <span class="video-label">Watch overview</span>
+              </button>
+              <div class="tier-name">Brand Clarity &amp; Messaging Program</div>
+              <div class="tier-sub">Done For You</div>
+              <div class="tier-desc">Our team delivers your differentiation, positioning, and messaging assets.</div>
+              <a class="button button-primary" href="#learn-dfy">Learn more</a>
+            </div>
+            <div class="tier">
+              <button class="video" type="button" aria-label="Play overview video">
+                <span class="play">▶</span>
+                <span class="video-label">Watch overview</span>
+              </button>
+              <div class="tier-name">Brand Clarity &amp; Messaging Coaching &amp; Guidance Program</div>
+              <div class="tier-sub">Done With You</div>
+              <div class="tier-desc">Guided workshops where we build your messaging alongside you.</div>
+              <a class="button button-primary" href="#learn-dwy">Learn more</a>
+            </div>
+            <div class="tier">
+              <button class="video" type="button" aria-label="Play overview video">
+                <span class="play">▶</span>
+                <span class="video-label">Watch overview</span>
+              </button>
+              <div class="tier-name">Mastermind Program</div>
+              <div class="tier-desc">Peer-driven accountability and strategy with a cohort of fellow founders.</div>
+              <a class="button button-primary" href="#learn-mastermind">Learn more</a>
+            </div>
+          </div>
+
+          <div id="cta-alt">
+            <a class="button button-ghost" href="#calendar-advisor">📅 Speak to a Success Advisor</a>
+            <a class="button button-ghost" href="#think-tank">🧠 Join the Free Think Tank</a>
+          </div>
+        </div>
+      </section>
+
+      <div id="chatbot" class="chatbot-collapsed">
+        <button id="chatbot-toggle" type="button">💬 Ask Darrin</button>
+      </div>
+    </main>
+  </body>
+</html>
