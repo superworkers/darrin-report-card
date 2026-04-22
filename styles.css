@@ -161,6 +161,7 @@ p {
   margin-top: 0.5rem;
 }
 
+#email,
 #field textarea,
 #field input[type='text'] {
   background: var(--color-lightest);
@@ -172,10 +173,15 @@ p {
   width: 100%;
 }
 
+#email {
+  max-width: 24rem;
+}
+
 #field textarea {
   min-height: 8rem;
 }
 
+#email:focus,
 #field textarea:focus,
 #field input:focus {
   border-color: var(--color-darkest);
@@ -296,8 +302,51 @@ p {
 .score-big[data-band='mid'] { background: var(--warn); }
 .score-big[data-band='low'] { background: var(--danger); }
 
+/* Focus area */
+.focus-area {
+  background: var(--color-lightest);
+  border: 1px solid var(--color-light);
+  border-left: 4px solid var(--warn);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding: 1.75rem;
+}
+
+.focus-area h2 {
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.focus-area p {
+  color: var(--color-darker);
+  margin: 0;
+}
+
+.focus-area ul {
+  color: var(--color-darker);
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.focus-area li {
+  margin-bottom: 0.5rem;
+}
+
+.activities-label {
+  color: var(--color-half);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+}
+
 /* CTA */
-#cta {
+.cta {
   background: var(--color-lightest);
   border: 1px solid var(--color-light);
   border-radius: 1rem;
@@ -314,10 +363,16 @@ p {
   margin: 0 0 0.5rem;
 }
 
+.plan-group-title {
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+  margin: 0 0 1rem;
+}
+
 #tiers {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
 }
 
 @media (max-width: 720px) {
@@ -345,9 +400,14 @@ p {
 .tier-sub {
   color: var(--color-half);
   font-size: 0.875rem;
-  letter-spacing: 0.05em;
-  margin-top: -0.25rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
+}
+
+.tier-sub strong {
+  color: var(--accent);
+  font-weight: 800;
 }
 
 .video {
@@ -405,15 +465,26 @@ p {
   text-decoration: none;
 }
 
+.cta-secondary {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 720px) {
+  .cta-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+
 #cta-alt {
-  border-top: 1px solid var(--color-lighter);
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.75rem;
-  padding-top: 1.5rem;
 }
 
 #cta-alt .button {
+  text-align: left;
   text-decoration: none;
 }
 

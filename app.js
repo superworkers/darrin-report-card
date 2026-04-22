@@ -1,4 +1,5 @@
 const ENDPOINT = 'https://us-central1-samantha-374622.cloudfunctions.net/openai-responses'
+const LEAD_CAPTURE_URL = 'https://script.google.com/macros/s/AKfycbyvVK3uhEE91SxKl5eaUBzMgW8_R872630JN2VGeEvvO-MU-g61XYXxDhkNtf8sLey-/exec'
 const STORAGE_KEY = 'darrin-report-card'
 
 const questions = [
@@ -61,21 +62,21 @@ const gradeSchema = {
         additionalProperties: false,
         properties: {
           headline: { type: 'string' },
-          score: { type: 'integer' },
           summary: { type: 'string' },
         },
-        required: ['score', 'headline', 'summary'],
+        required: ['headline', 'summary'],
         type: 'object',
       },
       questions: {
         items: {
           additionalProperties: false,
           properties: {
+            activities: { items: { type: 'string' }, type: 'array' },
             feedback: { type: 'string' },
-            grade: { type: 'string' },
             id: { type: 'string' },
+            score: { type: 'integer' },
           },
-          required: ['id', 'grade', 'feedback'],
+          required: ['id', 'score', 'feedback', 'activities'],
           type: 'object',
         },
         type: 'array',
@@ -90,25 +91,38 @@ const gradeSchema = {
 
 const state = {
   answers: {},
+  email: '',
+  sessionId: '',
   step: 0,
 }
+
+const isValidEmail = v => /^\S+@\S+\.\S+$/.test(v.trim())
 
 const $ = id => document.getElementById(id)
 const show = id => $(id).classList.remove('hidden')
 const hide = id => $(id).classList.add('hidden')
 
-const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers: state.answers, step: state.step }))
+const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers: state.answers, email: state.email, sessionId: state.sessionId, step: state.step }))
 
 const load = () => {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')
     if (saved) {
       state.answers = saved.answers || {}
+      state.email = saved.email || ''
+      state.sessionId = saved.sessionId || ''
       state.step = saved.step || 0
       return true
     }
   } catch {}
   return false
+}
+
+const captureLead = (report = null) => {
+  fetch(LEAD_CAPTURE_URL, {
+    body: JSON.stringify({ answers: state.answers, email: state.email, report, sessionId: state.sessionId }),
+    method: 'POST',
+  }).catch(() => {})
 }
 
 const getAnswerText = id => {
@@ -260,17 +274,11 @@ const startIntake = (resume = false) => {
 const gradeAnswers = async () => {
   const payload = questions.map(q => ({ id: q.id, prompt: q.prompt, answer: getAnswerText(q.id) }))
   const body = {
-    input: `Grade the following responses from a bootstrapped solopreneur about their sales foundation. For each question, assign a letter grade (A, A-, B+, B, B-, C+, C, C-, D, F) and give 2-3 sentences of specific, constructive feedback pointing out what's strong and what to sharpen. Then provide an overall grade and a 1-2 sentence summary of where they stand.
+    input: `Grade the following responses from a bootstrapped solopreneur about their sales foundation. For each question, assign an integer score from 0-100 using standard letter-grade ranges as your rubric (A = 90-100, B = 80-89, C = 70-79, D = 60-69, F = below 60). Give 2-3 sentences of specific, constructive feedback pointing out what's strong and what to sharpen. Also provide 3-4 concrete activities or exercises that would specifically improve THAT answer (not generic advice — tied to the gap in their response). Activities should be things the founder can actually do this week: interviews to run, frameworks to fill in, messages to rewrite, experiments to try.
 
 ${payload.map(p => `[${p.id}] ${p.prompt}\nAnswer: ${p.answer || '(no answer provided)'}`).join('\n\n')}
 
-Also return an overall Brand Clarity Score from 0-100 (integer). Calibrate strictly:
-- 85-100: rare — genuinely sharp, differentiated, market-ready across the board.
-- 70-84: solid foundation, 1-2 areas to sharpen.
-- 50-69: the typical range — directionally right but leaning on generics; real work needed.
-- 30-49: significant gaps; messaging wouldn't land cold.
-- Below 30: missing or confused fundamentals.
-Most real founders land in the 40-65 range. Don't inflate to be nice and don't deflate to manufacture urgency. Include a short headline (3-6 words) and a 1-2 sentence summary naming where they stand and the single most important thing to sharpen first.`,
+Include a short headline (3-6 words) and a 1-2 sentence summary naming where they stand and the single most important thing to sharpen first.`,
     instructions: `You are Darrin, an outbound cold sales expert helping bootstrapped solo-founders develop their differentiator, messaging, and sales process. Grade like a candid mentor, not a cheerleader — most founders' foundations have real gaps, and it doesn't help them to soften that. But don't be cruel or manufacture problems to upsell; the goal is an honest diagnosis they'd thank you for.
 
 Grading rubric — apply strictly:
@@ -302,9 +310,9 @@ Tone: direct, warm, no flattery, no fearmongering. You're the friend who tells t
 }
 
 const scoreBand = score => {
-  if (score >= 80) return 'high'
-  if (score >= 65) return 'mid-high'
-  if (score >= 45) return 'mid'
+  if (score >= 90) return 'high'
+  if (score >= 80) return 'mid-high'
+  if (score >= 70) return 'mid'
   return 'low'
 }
 
@@ -317,22 +325,25 @@ const scoreLetter = score => {
 }
 
 const benchmarkCopy = score => {
-  if (score >= 85) return `Top ~10% of founders we see. Most land between 40 and 65 — you're well past that.`
-  if (score >= 70) return `Above the typical range. Most founders land between 40 and 65; you're in the upper tier.`
-  if (score >= 55) return `Right around where most founders start. The typical range is 40-65 — you're mid-pack with clear room to pull ahead.`
-  if (score >= 40) return `Below the typical range. Most founders land between 40 and 65, and sharpening the basics closes that gap fast.`
-  return `Well below where most founders land (40-65). The fundamentals need work — but that's also where the biggest wins are.`
+  if (score >= 90) return `Top tier. Your foundation is genuinely sharp and differentiated — rare air.`
+  if (score >= 80) return `Solid foundation with one or two areas to sharpen. Above where most founders land.`
+  if (score >= 70) return `Right around where most founders land. Directionally right, but leaning on generics in places — real room to pull ahead.`
+  if (score >= 60) return `Significant gaps in the fundamentals. Messaging wouldn't land cold yet — and that's exactly where the biggest wins are.`
+  return `The basics need serious work. Prospects can't tell why to choose you — but a focused week can change that.`
 }
 
 const ctaCopy = score => {
-  if (score >= 80) return `A ${score}/100 means your foundation is strong. Here's how to scale it.`
-  if (score >= 65) return `A ${score}/100 is solid but leaving wins on the table. Here's how to sharpen it.`
-  if (score >= 45) return `If your Brand Clarity Score is ${score}/100, here's what you need.`
+  if (score >= 90) return `A ${score}/100 means your foundation is strong. Here's how to scale it.`
+  if (score >= 80) return `A ${score}/100 is solid but leaving wins on the table. Here's how to sharpen it.`
+  if (score >= 70) return `A ${score}/100 means you're mid-pack. Here's what'll move you up a tier.`
+  if (score >= 60) return `A ${score}/100 means the fundamentals need work. Here's where to start.`
   return `A ${score}/100 means prospects aren't sure why to choose you. Here's how to fix that.`
 }
 
+const computeScore = questions => Math.round(questions.reduce((sum, q) => sum + q.score, 0) / questions.length)
+
 const renderReport = report => {
-  const score = report.overall.score
+  const score = computeScore(report.questions)
   $('score-value').textContent = score
   $('score-letter').textContent = scoreLetter(score)
   $('overall-score').dataset.band = scoreBand(score)
@@ -353,10 +364,11 @@ const renderReport = report => {
     head.className = 'card-head'
     const h3 = document.createElement('h3')
     h3.textContent = q.prompt
+    const letter = scoreLetter(r.score)
     const grade = document.createElement('span')
     grade.className = 'grade'
-    grade.dataset.grade = r.grade
-    grade.textContent = r.grade
+    grade.dataset.grade = letter
+    grade.textContent = letter
     head.appendChild(h3)
     head.appendChild(grade)
     card.appendChild(head)
@@ -373,11 +385,49 @@ const renderReport = report => {
 
     cards.appendChild(card)
   })
+
+  const focus = $('focus-area')
+  focus.textContent = ''
+  const worst = [...report.questions].sort((a, b) => a.score - b.score)[0]
+  if (worst) {
+    const worstQ = questions.find(q => q.id === worst.id)
+    const eyebrow = document.createElement('div')
+    eyebrow.className = 'eyebrow'
+    eyebrow.textContent = 'Start here'
+    focus.appendChild(eyebrow)
+
+    const h2 = document.createElement('h2')
+    h2.textContent = worstQ.prompt
+    focus.appendChild(h2)
+
+    const fb = document.createElement('p')
+    fb.textContent = worst.feedback
+    focus.appendChild(fb)
+
+    if (worst.activities?.length) {
+      const label = document.createElement('div')
+      label.className = 'activities-label'
+      label.textContent = 'Try this week:'
+      focus.appendChild(label)
+
+      const ul = document.createElement('ul')
+      worst.activities.forEach(a => {
+        const li = document.createElement('li')
+        li.textContent = a
+        ul.appendChild(li)
+      })
+      focus.appendChild(ul)
+    }
+  }
+  show('focus-area')
+  show('cta')
 }
 
 const submit = async () => {
   hide('intake')
   show('report')
+  hide('focus-area')
+  hide('cta')
   $('score-value').textContent = '…'
   $('score-letter').textContent = '…'
   $('overall-score').dataset.band = ''
@@ -391,12 +441,27 @@ const submit = async () => {
     const report = await gradeAnswers()
     renderReport(report)
     localStorage.setItem(`${STORAGE_KEY}-last-report`, JSON.stringify(report))
+    captureLead(report)
   } catch (err) {
     $('overall-summary').textContent = `Error: ${err.message}`
   }
 }
 
-$('start').addEventListener('click', () => startIntake(false))
+$('start').addEventListener('click', () => {
+  const email = $('email').value
+  if (!isValidEmail(email)) {
+    $('email').focus()
+    $('email').setCustomValidity('Please enter a valid email address.')
+    $('email').reportValidity()
+    $('email').addEventListener('input', () => $('email').setCustomValidity(''), { once: true })
+    return
+  }
+  state.email = email.trim()
+  state.sessionId = crypto.randomUUID()
+  save()
+  captureLead()
+  startIntake(false)
+})
 $('resume').addEventListener('click', () => startIntake(true))
 
 $('back').addEventListener('click', () => {
@@ -419,17 +484,21 @@ $('next').addEventListener('click', () => {
   } else {
     state.step++
     save()
+    captureLead()
     renderStep()
   }
 })
 
 const restart = () => {
   state.answers = {}
+  state.email = ''
+  state.sessionId = ''
   state.step = 0
   save()
   hide('report')
   hide('intake')
   show('intro')
+  $('email').value = ''
   $('resume').hidden = true
 }
 
@@ -521,10 +590,11 @@ Respond with ONLY the answer text — no preamble, no question echo, no quotatio
 
 $('simulate').addEventListener('click', simulateAnswer)
 
-$('chatbot-toggle').addEventListener('click', () => {
-  alert('Chatbot coming soon — ask Darrin your questions here without booking a call.')
-})
+const openChatbot = () => alert('Chatbot coming soon — ask Darrin your questions here without booking a call.')
+$('chatbot-toggle').addEventListener('click', openChatbot)
+$('cta-ask-darrin').addEventListener('click', openChatbot)
 
-if (load() && Object.keys(state.answers).length > 0) {
-  $('resume').hidden = false
+if (load()) {
+  if (state.email) $('email').value = state.email
+  if (Object.keys(state.answers).length > 0) $('resume').hidden = false
 }

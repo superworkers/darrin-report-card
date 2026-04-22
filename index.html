@@ -22,6 +22,7 @@
       <section id="intro" class="view">
         <h1>How strong is your sales foundation?</h1>
         <p class="lede">Answer 7 quick questions. Get a graded report card with specific feedback on where you stand and what to sharpen next.</p>
+        <input id="email" type="email" placeholder="your@email.com" autocomplete="email" required />
         <button class="button button-primary" id="start">Start</button>
         <button class="button button-ghost" id="resume" hidden>Resume last session</button>
       </section>
@@ -58,33 +59,41 @@
         </div>
         <div id="cards"></div>
 
-        <div id="cta">
+        <div id="focus-area" class="focus-area hidden"></div>
+
+        <div id="cta" class="cta hidden">
           <div id="cta-headline">
             <h2 id="cta-title">Here's what you need next</h2>
             <p id="cta-sub" class="lede"></p>
           </div>
 
-          <div id="tiers">
-            <div class="tier">
-              <button class="video" type="button" aria-label="Play overview video">
-                <span class="play">▶</span>
-                <span class="video-label">Watch overview</span>
-              </button>
-              <div class="tier-name">Brand Clarity &amp; Messaging Program</div>
-              <div class="tier-sub">Done For You</div>
-              <div class="tier-desc">Our team delivers your differentiation, positioning, and messaging assets.</div>
-              <a class="button button-primary" href="#learn-dfy">Learn more</a>
+          <div class="plan-group">
+            <h3 class="plan-group-title">Brand Clarity &amp; Messaging</h3>
+            <div id="tiers">
+              <div class="tier">
+                <button class="video" type="button" aria-label="Play overview video">
+                  <span class="play">▶</span>
+                  <span class="video-label">Watch overview</span>
+                </button>
+                <div class="tier-sub">Done <strong>For</strong> You</div>
+                <div class="tier-name">Managed Service</div>
+                <div class="tier-desc">Our team delivers your differentiation, positioning, and messaging assets.</div>
+                <a class="button button-primary" href="#learn-dfy">Learn more</a>
+              </div>
+              <div class="tier">
+                <button class="video" type="button" aria-label="Play overview video">
+                  <span class="play">▶</span>
+                  <span class="video-label">Watch overview</span>
+                </button>
+                <div class="tier-sub">Done <strong>With</strong> You</div>
+                <div class="tier-name">Coaching &amp; Guidance</div>
+                <div class="tier-desc">Guided workshops where we build your messaging alongside you.</div>
+                <a class="button button-primary" href="#learn-dwy">Learn more</a>
+              </div>
             </div>
-            <div class="tier">
-              <button class="video" type="button" aria-label="Play overview video">
-                <span class="play">▶</span>
-                <span class="video-label">Watch overview</span>
-              </button>
-              <div class="tier-name">Brand Clarity &amp; Messaging Coaching &amp; Guidance Program</div>
-              <div class="tier-sub">Done With You</div>
-              <div class="tier-desc">Guided workshops where we build your messaging alongside you.</div>
-              <a class="button button-primary" href="#learn-dwy">Learn more</a>
-            </div>
+          </div>
+
+          <div class="cta-secondary">
             <div class="tier">
               <button class="video" type="button" aria-label="Play overview video">
                 <span class="play">▶</span>
@@ -94,11 +103,11 @@
               <div class="tier-desc">Peer-driven accountability and strategy with a cohort of fellow founders.</div>
               <a class="button button-primary" href="#learn-mastermind">Learn more</a>
             </div>
-          </div>
-
-          <div id="cta-alt">
-            <a class="button button-ghost" href="#calendar-advisor">📅 Speak to a Success Advisor</a>
-            <a class="button button-ghost" href="#think-tank">🧠 Join the Free Think Tank</a>
+            <div id="cta-alt">
+              <a class="button button-ghost" href="#calendar-advisor">📅 Speak to a Success Advisor</a>
+              <a class="button button-ghost" href="#think-tank">🧠 Join the Free Think Tank</a>
+              <button class="button button-ghost" id="cta-ask-darrin" type="button">💬 Ask Darrin here and now</button>
+            </div>
           </div>
         </div>
       </section>
