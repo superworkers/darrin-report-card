@@ -1,0 +1,96 @@
+#app {
+  max-width: 64rem;
+  padding: 2rem 1.5rem 6rem;
+}
+
+#admin-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+#admin-header h1 {
+  font-size: 1.75rem;
+  margin: 0;
+}
+
+.loading {
+  color: var(--color-half);
+  font-style: italic;
+}
+
+.error {
+  background: #fff5f5;
+  border: 1px solid #f5c6c6;
+  border-radius: 0.5rem;
+  color: var(--danger);
+  padding: 1rem;
+}
+
+.entry-count {
+  color: var(--color-half);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+#table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  width: 100%;
+}
+
+th {
+  border-bottom: 2px solid var(--color-light);
+  color: var(--color-half);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.625rem 1rem;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+td {
+  border-bottom: 1px solid var(--color-lighter);
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+tr:hover td {
+  background: var(--color-lightest);
+}
+
+.empty {
+  color: var(--color-half);
+  font-style: italic;
+  text-align: center;
+}
+
+.grade-cell {
+  font-family: 'BioRhyme', serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.grade-A { color: var(--accent); }
+.grade-B { color: #3a6bb2; }
+.grade-C { color: var(--warn); }
+.grade-D, .grade-F { color: var(--danger); }
+
+.view-link {
+  color: var(--color-half);
+  font-size: 0.875rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.view-link:hover {
+  color: var(--color-darkest);
+  text-decoration: underline;
+}

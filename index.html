@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sales Report Card</title>
+    <title>Brand Clarity Report Card</title>
     <meta name="description" content="A 7-question intake that grades your sales foundation." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,16 +13,26 @@
   </head>
   <body>
     <header id="topbar">
-      <div class="brand">Darrin</div>
-      <div class="tagline">Sales Report Card</div>
+      <a href="#" id="brand-link"><img alt="The Scale Summit" id="brand-logo" src="scale-summit-logo.png" /></a>
       <button class="button button-ghost" id="header-restart" type="button">Start over</button>
     </header>
 
+    <div id="modal-overlay" class="hidden">
+      <div id="modal">
+        <h2>Get your instant report card</h2>
+        <p>Your results are ready to generate. Enter your name and email and we'll show them immediately.</p>
+        <input autocomplete="given-name" id="modal-name" placeholder="Your name" required type="text" />
+        <input autocomplete="email" id="modal-email" placeholder="your@email.com" required type="email" />
+        <button class="button button-primary" id="modal-submit" type="button">Generate my report card →</button>
+        <button class="button button-ghost" id="modal-cancel" type="button">Go back</button>
+      </div>
+    </div>
+
     <main id="app">
       <section id="intro" class="view">
-        <h1>How strong is your sales foundation?</h1>
-        <p class="lede">Answer 7 quick questions. Get a graded report card with specific feedback on where you stand and what to sharpen next.</p>
-        <input id="email" type="email" placeholder="your@email.com" autocomplete="email" required />
+        <h1>How strong is your brand clarity?</h1>
+        <p class="lede">Answer 6 quick questions. Get a graded report card with specific feedback on where you stand and what to sharpen next.</p>
+        <p>Get an <strong>instant grade</strong> on the strength of your brand and clarity of your messaging.</p>
         <button class="button button-primary" id="start">Start</button>
         <button class="button button-ghost" id="resume" hidden>Resume last session</button>
       </section>
@@ -42,79 +52,31 @@
       </section>
 
       <section id="report" class="view hidden">
-        <div id="report-header">
-          <div id="overall">
-            <div class="score-big" id="overall-score">
-              <div class="score-letter" id="score-letter">—</div>
-              <div class="score-num"><span id="score-value">—</span><span class="score-total">/100</span></div>
-            </div>
-            <div>
-              <div class="eyebrow">Brand Clarity Score</div>
-              <h1>Your Report Card</h1>
-              <p id="overall-summary" class="lede"></p>
-              <p id="benchmark" class="benchmark"></p>
-            </div>
+        <h1 id="report-title">Brand Clarity Report Card</h1>
+        <div id="overall-card">
+          <div class="score-big" id="overall-score">
+            <div class="score-letter" id="score-letter">—</div>
+            <div class="score-num"><span id="score-value">—</span><span class="score-total">/100</span></div>
           </div>
-          <button class="button button-ghost" id="restart">Start over</button>
+          <div id="overall-body">
+            <p id="overall-summary" class="lede"></p>
+          </div>
         </div>
+
         <div id="cards"></div>
 
-        <div id="focus-area" class="focus-area hidden"></div>
-
-        <div id="cta" class="cta hidden">
-          <div id="cta-headline">
-            <h2 id="cta-title">Here's what you need next</h2>
-            <p id="cta-sub" class="lede"></p>
-          </div>
-
-          <div class="plan-group">
-            <h3 class="plan-group-title">Brand Clarity &amp; Messaging</h3>
-            <div id="tiers">
-              <div class="tier">
-                <button class="video" type="button" aria-label="Play overview video">
-                  <span class="play">▶</span>
-                  <span class="video-label">Watch overview</span>
-                </button>
-                <div class="tier-sub">Done <strong>For</strong> You</div>
-                <div class="tier-name">Managed Service</div>
-                <div class="tier-desc">Our team delivers your differentiation, positioning, and messaging assets.</div>
-                <a class="button button-primary" href="#learn-dfy">Learn more</a>
-              </div>
-              <div class="tier">
-                <button class="video" type="button" aria-label="Play overview video">
-                  <span class="play">▶</span>
-                  <span class="video-label">Watch overview</span>
-                </button>
-                <div class="tier-sub">Done <strong>With</strong> You</div>
-                <div class="tier-name">Coaching &amp; Guidance</div>
-                <div class="tier-desc">Guided workshops where we build your messaging alongside you.</div>
-                <a class="button button-primary" href="#learn-dwy">Learn more</a>
-              </div>
-            </div>
-          </div>
-
-          <div class="cta-secondary">
-            <div class="tier">
-              <button class="video" type="button" aria-label="Play overview video">
-                <span class="play">▶</span>
-                <span class="video-label">Watch overview</span>
-              </button>
-              <div class="tier-name">Mastermind Program</div>
-              <div class="tier-desc">Peer-driven accountability and strategy with a cohort of fellow founders.</div>
-              <a class="button button-primary" href="#learn-mastermind">Learn more</a>
-            </div>
-            <div id="cta-alt">
-              <a class="button button-ghost" href="#calendar-advisor">📅 Speak to a Success Advisor</a>
-              <a class="button button-ghost" href="#think-tank">🧠 Join the Free Think Tank</a>
-              <button class="button button-ghost" id="cta-ask-darrin" type="button">💬 Ask Darrin here and now</button>
-            </div>
-          </div>
+        <div id="challenges-section" class="hidden">
+          <h2 id="challenges-title">Where you're likely leaving growth on the table</h2>
+          <div id="challenge-cards"></div>
         </div>
-      </section>
 
-      <div id="chatbot" class="chatbot-collapsed">
-        <button id="chatbot-toggle" type="button">💬 Ask Darrin</button>
-      </div>
+        <div id="report-cta" class="hidden">
+          <h2>Book a free brainstorm with Edward</h2>
+          <p>A free 30-minute call with our Member Success Advisor.</p>
+          <a class="button button-primary" href="http://meet-with-ed.thescalesummit.com/" id="cta-book" target="_blank">Book a call</a>
+        </div>
+
+      </section>
     </main>
   </body>
 </html>

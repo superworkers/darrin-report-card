@@ -17,7 +17,6 @@ const questions = [
     id: 'pains',
     prompt: 'List the pain points your primary target audience faces.',
     type: 'textarea',
-    hint: 'One per line works great.',
   },
   {
     id: 'benefits',
@@ -39,18 +38,6 @@ const questions = [
     type: 'textarea',
     hint: 'Example: I generate cold leads from email campaigns and networking, conduct a discovery call, send a proposal, follow up to close.',
   },
-  {
-    id: 'challenges',
-    prompt: 'What are your biggest client acquisition challenges?',
-    type: 'multi-with-textarea',
-    hint: 'Select all that apply, then tell us more.',
-    options: [
-      { value: 'leads', label: 'Generating Qualified Leads' },
-      { value: 'discovery', label: 'Conducting Discovery Calls' },
-      { value: 'losing', label: 'Losing Prospects After the Discovery Calls' },
-      { value: 'closing', label: 'Closing Sales' },
-    ],
-  },
 ]
 
 const gradeSchema = {
@@ -58,6 +45,19 @@ const gradeSchema = {
   schema: {
     additionalProperties: false,
     properties: {
+      inferred_challenges: {
+        items: {
+          additionalProperties: false,
+          properties: {
+            status: { enum: ['critical', 'struggling', 'on_track'], type: 'string' },
+            title: { type: 'string' },
+            why: { type: 'string' },
+          },
+          required: ['title', 'status', 'why'],
+          type: 'object',
+        },
+        type: 'array',
+      },
       overall: {
         additionalProperties: false,
         properties: {
@@ -82,16 +82,19 @@ const gradeSchema = {
         type: 'array',
       },
     },
-    required: ['overall', 'questions'],
+    required: ['overall', 'questions', 'inferred_challenges'],
     type: 'object',
   },
   strict: true,
   type: 'json_schema',
 }
 
+let darrinContext = ''
+
 const state = {
   answers: {},
   email: '',
+  name: '',
   sessionId: '',
   step: 0,
 }
@@ -102,7 +105,7 @@ const $ = id => document.getElementById(id)
 const show = id => $(id).classList.remove('hidden')
 const hide = id => $(id).classList.add('hidden')
 
-const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers: state.answers, email: state.email, sessionId: state.sessionId, step: state.step }))
+const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers: state.answers, email: state.email, name: state.name, sessionId: state.sessionId, step: state.step }))
 
 const load = () => {
   try {
@@ -110,6 +113,7 @@ const load = () => {
     if (saved) {
       state.answers = saved.answers || {}
       state.email = saved.email || ''
+      state.name = saved.name || ''
       state.sessionId = saved.sessionId || ''
       state.step = saved.step || 0
       return true
@@ -120,7 +124,7 @@ const load = () => {
 
 const captureLead = (report = null) => {
   fetch(LEAD_CAPTURE_URL, {
-    body: JSON.stringify({ answers: state.answers, email: state.email, report, sessionId: state.sessionId }),
+    body: JSON.stringify({ answers: state.answers, email: state.email, name: state.name, report, sessionId: state.sessionId }),
     method: 'POST',
   }).catch(() => {})
 }
@@ -131,10 +135,7 @@ const getAnswerText = id => {
   if (typeof a === 'string') return a
   if (a.option === 'none') return "[User doesn't currently have a lead magnet]"
   if (a.option === 'unknown') return "[User is not familiar with what a lead magnet is]"
-  if (Array.isArray(a.selected)) {
-    const labels = a.selected.map(v => questions.find(q => q.id === 'challenges').options.find(o => o.value === v)?.label).filter(Boolean)
-    return `Selected: ${labels.join(', ') || 'None'}\n\n${a.text || ''}`.trim()
-  }
+  if (Array.isArray(a.selected)) return a.selected.join(', ')
   return a.text || ''
 }
 
@@ -274,27 +275,29 @@ const startIntake = (resume = false) => {
 const gradeAnswers = async () => {
   const payload = questions.map(q => ({ id: q.id, prompt: q.prompt, answer: getAnswerText(q.id) }))
   const body = {
-    input: `Grade the following responses from a bootstrapped solopreneur about their sales foundation. For each question, assign an integer score from 0-100 using standard letter-grade ranges as your rubric (A = 90-100, B = 80-89, C = 70-79, D = 60-69, F = below 60). Give 2-3 sentences of specific, constructive feedback pointing out what's strong and what to sharpen. Also provide 3-4 concrete activities or exercises that would specifically improve THAT answer (not generic advice — tied to the gap in their response). Activities should be things the founder can actually do this week: interviews to run, frameworks to fill in, messages to rewrite, experiments to try.
+    input: `Grade the following responses from a bootstrapped solopreneur about their sales foundation. For each question, assign an integer score from 0-100 using standard letter-grade ranges (A = 90-100, B = 80-89, C = 70-79, D = 60-69, F = below 60). Give 2-3 sentences of specific, constructive feedback. Begin the feedback with "Score: X." where X is the numeric score. Also provide 3-4 concrete activities tied to the specific gap in their response — things the founder can actually do this week.
 
 ${payload.map(p => `[${p.id}] ${p.prompt}\nAnswer: ${p.answer || '(no answer provided)'}`).join('\n\n')}
 
-Include a short headline (3-6 words) and a 1-2 sentence summary naming where they stand and the single most important thing to sharpen first.`,
-    instructions: `You are Darrin, an outbound cold sales expert helping bootstrapped solo-founders develop their differentiator, messaging, and sales process. Grade like a candid mentor, not a cheerleader — most founders' foundations have real gaps, and it doesn't help them to soften that. But don't be cruel or manufacture problems to upsell; the goal is an honest diagnosis they'd thank you for.
+Always return all four of the following client acquisition challenges, in this exact order. For each, set status to "critical", "struggling", or "on_track". You MUST mark exactly one as "critical" — the single most pressing gap that would have the biggest impact if addressed first. The remaining challenges should be "struggling" or "on_track". Explain specifically WHY — grounded in what they actually said. Do not skip any:
+1. Generating Qualified Cold Leads
+2. Conducting Discovery Calls
+3. Losing Prospects After the Discovery Calls
+4. Closing Sales
+
+Include a short headline (3-6 words) and a 1-2 sentence overall summary.${darrinContext ? `\n\n---\n${darrinContext}` : ''}`,
+    instructions: `You are Darrin, an outbound cold sales expert helping bootstrapped solo-founders develop their differentiator, messaging, and sales process. Grade like a candid mentor, not a cheerleader.
 
 Grading rubric — apply strictly:
 - A: rare. Truly specific, differentiated, and market-tested. Would stand out cold in a prospect's inbox.
-- B: clear and competent, but still recognizable as generic in one or two ways. The norm for a solid but not standout founder.
-- C: the default grade for most founders. Directionally right but leans on buzzwords, broad audiences, or feature-not-benefit framing. Real work needed.
-- D: vague, confused, or mostly filler. Prospect wouldn't know why to choose them.
+- B: clear and competent, but still recognizable as generic in one or two ways.
+- C: the default. Directionally right but leans on buzzwords, broad audiences, or feature-not-benefit framing.
+- D: vague, confused, or mostly filler.
 - F: missing, contradictory, or actively harms their positioning.
 
-Calibration:
-- Default to C when in doubt. Don't give B for effort; give it for actual clarity.
-- Reward specificity (named verticals, concrete pains, measurable outcomes) — penalize abstractions ("high-quality", "trusted partner", "passionate", "innovative", "small businesses", "entrepreneurs").
-- Missing lead magnet is an honest D, not an F — but explain what they're leaving on the table, not that they're doomed.
-- One sharp sentence of critique beats three soft ones. Name the specific weakness and the specific fix.
+Use the full range of scores. Reward specificity, penalize abstractions. One sharp sentence of critique beats three soft ones.
 
-Tone: direct, warm, no flattery, no fearmongering. You're the friend who tells them the truth because you want them to win.`,
+Tone: direct, warm, no flattery, no fearmongering. You're the friend who tells them the truth because you want them to win. Always write in second person — "Your differentiator…", "Your target audience…" — never "The differentiator answer" or "The answers provided."`,
     model: 'gpt-4.1',
     text: { format: gradeSchema },
   }
@@ -324,53 +327,133 @@ const scoreLetter = score => {
   return 'F'
 }
 
-const benchmarkCopy = score => {
-  if (score >= 90) return `Top tier. Your foundation is genuinely sharp and differentiated — rare air.`
-  if (score >= 80) return `Solid foundation with one or two areas to sharpen. Above where most founders land.`
-  if (score >= 70) return `Right around where most founders land. Directionally right, but leaning on generics in places — real room to pull ahead.`
-  if (score >= 60) return `Significant gaps in the fundamentals. Messaging wouldn't land cold yet — and that's exactly where the biggest wins are.`
-  return `The basics need serious work. Prospects can't tell why to choose you — but a focused week can change that.`
-}
 
-const ctaCopy = score => {
-  if (score >= 90) return `A ${score}/100 means your foundation is strong. Here's how to scale it.`
-  if (score >= 80) return `A ${score}/100 is solid but leaving wins on the table. Here's how to sharpen it.`
-  if (score >= 70) return `A ${score}/100 means you're mid-pack. Here's what'll move you up a tier.`
-  if (score >= 60) return `A ${score}/100 means the fundamentals need work. Here's where to start.`
-  return `A ${score}/100 means prospects aren't sure why to choose you. Here's how to fix that.`
-}
-
-const computeScore = questions => Math.round(questions.reduce((sum, q) => sum + q.score, 0) / questions.length)
+const computeScore = qs => Math.round(qs.reduce((sum, q) => sum + q.score, 0) / qs.length)
 
 const renderReport = report => {
   const score = computeScore(report.questions)
+  const scoreEl = $('overall-score')
+  scoreEl.classList.remove('skeleton')
+  scoreEl.dataset.band = scoreBand(score)
   $('score-value').textContent = score
   $('score-letter').textContent = scoreLetter(score)
-  $('overall-score').dataset.band = scoreBand(score)
-  $('overall-summary').textContent = report.overall.summary
-  $('benchmark').textContent = benchmarkCopy(score)
-  $('cta-title').textContent = report.overall.headline || "Here's what you need next"
-  $('cta-sub').textContent = ctaCopy(score)
+  const summaryEl = $('overall-summary')
+  summaryEl.textContent = ''
+  const parts = report.overall.summary.split(/(?=Next steps?:)/i)
+  summaryEl.appendChild(document.createTextNode(parts[0].trim()))
+  if (parts[1]) {
+    const next = document.createElement('strong')
+    next.className = 'next-steps'
+    next.textContent = parts[1].trim()
+    summaryEl.appendChild(next)
+  }
+
+  questions.forEach(q => {
+    const r = report.questions.find(x => x.id === q.id)
+    if (!r) return
+    const card = $('cards').querySelector(`[data-qid="${q.id}"]`)
+    if (!card) return
+    const letter = scoreLetter(r.score)
+
+    card.dataset.grade = letter
+
+    const skGrade = card.querySelector('.skeleton-grade')
+    if (skGrade) {
+      const badge = document.createElement('span')
+      badge.className = 'grade'
+      badge.dataset.grade = letter
+      badge.textContent = letter
+      skGrade.replaceWith(badge)
+    }
+
+    const skFb = card.querySelector('.skeleton-feedback')
+    if (skFb) {
+      const fb = document.createElement('div')
+      fb.className = 'feedback'
+      const match = r.feedback.match(/^(Score:\s*\d+\.?\s*)([\s\S]*)/)
+      if (match) {
+        const strong = document.createElement('strong')
+        strong.textContent = match[1].trim()
+        fb.appendChild(strong)
+        fb.appendChild(document.createTextNode(' ' + match[2]))
+      } else {
+        fb.textContent = r.feedback
+      }
+      skFb.replaceWith(fb)
+    }
+  })
+
+  const challengeCards = $('challenge-cards')
+  challengeCards.textContent = ''
+  const challengeTitles = ['Generating Qualified Cold Leads', 'Conducting Discovery Calls', 'Losing Prospects After Discovery Calls', 'Closing Sales']
+  if (report.inferred_challenges?.length) {
+    report.inferred_challenges.forEach((c, i) => {
+      const card = document.createElement('div')
+      card.className = `challenge-card challenge-${c.status}`
+
+      const head = document.createElement('div')
+      head.className = 'challenge-head'
+
+      const title = document.createElement('div')
+      title.className = 'challenge-title'
+      title.textContent = challengeTitles[i] || c.title
+      head.appendChild(title)
+
+      const badge = document.createElement('span')
+      badge.className = 'challenge-badge'
+      const badgeLabels = { critical: 'Critical', on_track: 'On track', struggling: 'Needs work' }
+      badge.textContent = badgeLabels[c.status] || 'Needs work'
+      head.appendChild(badge)
+      card.appendChild(head)
+
+      const why = document.createElement('div')
+      why.className = 'challenge-why'
+      why.textContent = c.why
+      card.appendChild(why)
+
+      challengeCards.appendChild(card)
+    })
+    show('challenges-section')
+  }
+  show('report-cta')
+}
+
+const makeSkeleton = (widths = [1, 0.85, 0.65]) => {
+  const wrap = document.createElement('div')
+  wrap.className = 'skeleton-feedback'
+  widths.forEach(w => {
+    const line = document.createElement('span')
+    line.className = 'skeleton skeleton-line'
+    line.style.width = `${w * 100}%`
+    wrap.appendChild(line)
+  })
+  return wrap
+}
+
+const renderLoadingState = () => {
+  const scoreEl = $('overall-score')
+  scoreEl.dataset.band = ''
+  scoreEl.classList.add('skeleton')
+  $('score-value').textContent = ''
+  $('score-letter').textContent = ''
+  $('overall-summary').textContent = 'Analyzing your answers…'
+
 
   const cards = $('cards')
   cards.textContent = ''
   questions.forEach(q => {
-    const r = report.questions.find(x => x.id === q.id)
-    if (!r) return
     const card = document.createElement('div')
     card.className = 'card'
+    card.dataset.qid = q.id
 
     const head = document.createElement('div')
     head.className = 'card-head'
     const h3 = document.createElement('h3')
     h3.textContent = q.prompt
-    const letter = scoreLetter(r.score)
-    const grade = document.createElement('span')
-    grade.className = 'grade'
-    grade.dataset.grade = letter
-    grade.textContent = letter
+    const skGrade = document.createElement('span')
+    skGrade.className = 'skeleton skeleton-grade'
     head.appendChild(h3)
-    head.appendChild(grade)
+    head.appendChild(skGrade)
     card.appendChild(head)
 
     const answer = document.createElement('div')
@@ -378,85 +461,63 @@ const renderReport = report => {
     answer.textContent = getAnswerText(q.id) || '(no answer provided)'
     card.appendChild(answer)
 
-    const fb = document.createElement('div')
-    fb.className = 'feedback'
-    fb.textContent = r.feedback
-    card.appendChild(fb)
-
+    card.appendChild(makeSkeleton())
     cards.appendChild(card)
   })
 
-  const focus = $('focus-area')
-  focus.textContent = ''
-  const worst = [...report.questions].sort((a, b) => a.score - b.score)[0]
-  if (worst) {
-    const worstQ = questions.find(q => q.id === worst.id)
-    const eyebrow = document.createElement('div')
-    eyebrow.className = 'eyebrow'
-    eyebrow.textContent = 'Start here'
-    focus.appendChild(eyebrow)
-
-    const h2 = document.createElement('h2')
-    h2.textContent = worstQ.prompt
-    focus.appendChild(h2)
-
-    const fb = document.createElement('p')
-    fb.textContent = worst.feedback
-    focus.appendChild(fb)
-
-    if (worst.activities?.length) {
-      const label = document.createElement('div')
-      label.className = 'activities-label'
-      label.textContent = 'Try this week:'
-      focus.appendChild(label)
-
-      const ul = document.createElement('ul')
-      worst.activities.forEach(a => {
-        const li = document.createElement('li')
-        li.textContent = a
-        ul.appendChild(li)
-      })
-      focus.appendChild(ul)
-    }
-  }
-  show('focus-area')
-  show('cta')
+  $('challenge-cards').textContent = ''
+  hide('challenges-section')
+  hide('report-cta')
 }
 
 const submit = async () => {
   hide('intake')
   show('report')
-  hide('focus-area')
-  hide('cta')
-  $('score-value').textContent = '…'
-  $('score-letter').textContent = '…'
-  $('overall-score').dataset.band = ''
-  $('overall-summary').textContent = 'Grading your answers…'
-  $('benchmark').textContent = ''
-  $('cta-title').textContent = "Here's what you need next"
-  $('cta-sub').textContent = ''
-  $('cards').textContent = ''
+  renderLoadingState()
 
   try {
     const report = await gradeAnswers()
     renderReport(report)
+    localStorage.setItem(`${STORAGE_KEY}-report-${state.sessionId}`, JSON.stringify(report))
     localStorage.setItem(`${STORAGE_KEY}-last-report`, JSON.stringify(report))
     captureLead(report)
+    if (state.sessionId) history.replaceState(null, '', `?id=${state.sessionId}`)
   } catch (err) {
     $('overall-summary').textContent = `Error: ${err.message}`
   }
 }
 
-$('start').addEventListener('click', () => {
-  const email = $('email').value
-  if (!isValidEmail(email)) {
-    $('email').focus()
-    $('email').setCustomValidity('Please enter a valid email address.')
-    $('email').reportValidity()
-    $('email').addEventListener('input', () => $('email').setCustomValidity(''), { once: true })
+const loadById = async id => {
+  hide('intro')
+  hide('intake')
+  show('report')
+
+  const cached = localStorage.getItem(`${STORAGE_KEY}-report-${id}`)
+  if (cached) {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+    state.answers = saved.answers || {}
+    state.email = saved.email || ''
+    state.sessionId = id
+    renderLoadingState()
+    renderReport(JSON.parse(cached))
     return
   }
-  state.email = email.trim()
+
+  try {
+    const res = await fetch(`${LEAD_CAPTURE_URL}?id=${encodeURIComponent(id)}`)
+    if (!res.ok) throw new Error(`${res.status}`)
+    const data = await res.json()
+    state.answers = data.answers || {}
+    state.email = data.email || ''
+    state.sessionId = id
+    renderLoadingState()
+    renderReport(data.report)
+  } catch (err) {
+    $('overall-summary').textContent = `Could not load report: ${err.message}`
+  }
+}
+
+$('start').addEventListener('click', () => {
   state.sessionId = crypto.randomUUID()
   save()
   captureLead()
@@ -480,13 +541,40 @@ $('next').addEventListener('click', () => {
   }
   if (state.step === questions.length - 1) {
     $('progress-bar').style.width = '100%'
-    submit()
+    show('modal-overlay')
+    $('modal-name').focus()
   } else {
     state.step++
     save()
     captureLead()
     renderStep()
   }
+})
+
+$('modal-cancel').addEventListener('click', () => hide('modal-overlay'))
+
+$('modal-submit').addEventListener('click', () => {
+  const name = $('modal-name').value.trim()
+  const email = $('modal-email').value.trim()
+  if (!name) {
+    $('modal-name').setCustomValidity('Please enter your name.')
+    $('modal-name').reportValidity()
+    $('modal-name').addEventListener('input', () => $('modal-name').setCustomValidity(''), { once: true })
+    return
+  }
+  if (!isValidEmail(email)) {
+    $('modal-email').setCustomValidity('Please enter a valid email.')
+    $('modal-email').reportValidity()
+    $('modal-email').addEventListener('input', () => $('modal-email').setCustomValidity(''), { once: true })
+    return
+  }
+  state.name = name
+  state.email = email
+  state.sessionId = state.sessionId || crypto.randomUUID()
+  save()
+  captureLead()
+  hide('modal-overlay')
+  submit()
 })
 
 const restart = () => {
@@ -498,12 +586,22 @@ const restart = () => {
   hide('report')
   hide('intake')
   show('intro')
-  $('email').value = ''
   $('resume').hidden = true
 }
 
-$('restart').addEventListener('click', restart)
 $('header-restart').addEventListener('click', restart)
+
+$('brand-link').addEventListener('click', e => {
+  e.preventDefault()
+  hide('report')
+  hide('intake')
+  hide('modal-overlay')
+  show('intro')
+  if (Object.keys(state.answers).length > 0) $('resume').hidden = false
+  history.replaceState(null, '', location.pathname)
+})
+
+
 
 const simulateAnswer = async () => {
   const q = questions[state.step]
@@ -521,40 +619,26 @@ const simulateAnswer = async () => {
     .filter(Boolean)
     .join('\n\n')
 
-  const qualityPool = ['strong', 'weak', 'weak', 'mid', 'mid', 'mid']
+  const qualityPool = ['strong', 'strong', 'weak', 'weak', 'mid', 'mid']
   const quality = qualityPool[Math.floor(Math.random() * qualityPool.length)]
 
   const qualityGuidance = {
-    strong: `Write a STRONG answer (would earn an A or A-). The founder has clearly done the strategic work here:
-- Specific, concrete, and differentiated
-- Names a narrow target with real context
-- Benefits framed as outcomes, not features
-- Avoids buzzwords — uses plain, vivid language`,
-    mid: `Write a MEDIUM answer (would earn a B- or C+). The founder is partway there:
-- Some specificity, but still leans on a few generic phrases
-- Target audience is named but a little broad
-- Mixes real insight with filler
-- Reader can tell what they do but not what makes them distinct`,
-    weak: `Write a WEAK answer (would earn a C-, D, or F). The founder hasn't done the strategic work:
-- Generic buzzwords ("high-quality", "trusted partner", "innovative solutions")
-- Broad, undefined audience ("small businesses", "entrepreneurs")
-- Vague pains, features framed as benefits
-- No clear differentiator — falls back on "passion" or "care"`,
+    strong: `Write a STRONG answer (would earn an A). Specific, concrete, differentiated, outcome-framed, no buzzwords.`,
+    mid: `Write a MEDIOCRE answer (would earn a C or C-). Some specificity but leans heavily on generic phrases and buzzwords. Directionally right but not distinct.`,
+    weak: `Write a POOR answer (would earn a D or F). Vague, confused, full of buzzwords, broad undefined audience, features not benefits, no clear differentiator or completely missing the point.`,
   }
 
   const body = {
-    input: `You are a bootstrapped solopreneur being interviewed about your sales foundation. For demo purposes, the goal is a MIX of answer quality across the 7 questions so the report card shows clear addressable opportunities — some strengths to affirm, some weaknesses to coach.
-
-For THIS question, the target quality level is: ${quality.toUpperCase()}.
+    input: `You are a bootstrapped solopreneur being interviewed about your sales foundation. Generate a ${quality} quality answer for demo purposes.
 
 ${qualityGuidance[quality]}
 
-Stay consistent with any prior answers (same business, same founder, same audience). Keep length natural for the input type — 1-3 sentences for short fields, a short paragraph for longer ones. Sound like a real founder, not a caricature.
+Stay consistent with prior answers (same business, same founder). Keep length natural — 1-3 sentences for short fields, a short paragraph for longer ones.
 
-${priorContext ? `Your prior answers (stay consistent with them):\n${priorContext}\n\n` : ''}Question: ${q.prompt}
+${priorContext ? `Prior answers:\n${priorContext}\n\n` : ''}Question: ${q.prompt}
 
-Respond with ONLY the answer text — no preamble, no question echo, no quotation marks.`,
-    instructions: `You are generating demo answers for a sales coaching intake form. Mix strong and weak answers across questions so the grading system surfaces realistic, addressable opportunities. This question's target quality is ${quality}.`,
+Respond with ONLY the answer text.`,
+    instructions: `Generating demo answers for a sales coaching intake. This question targets ${quality} quality.`,
     model: 'gpt-4.1',
   }
 
@@ -590,11 +674,11 @@ Respond with ONLY the answer text — no preamble, no question echo, no quotatio
 
 $('simulate').addEventListener('click', simulateAnswer)
 
-const openChatbot = () => alert('Chatbot coming soon — ask Darrin your questions here without booking a call.')
-$('chatbot-toggle').addEventListener('click', openChatbot)
-$('cta-ask-darrin').addEventListener('click', openChatbot)
+fetch('DARREN.md').then(r => r.text()).then(t => { darrinContext = t }).catch(() => {})
 
-if (load()) {
-  if (state.email) $('email').value = state.email
-  if (Object.keys(state.answers).length > 0) $('resume').hidden = false
+const idParam = new URLSearchParams(location.search).get('id')
+if (idParam) {
+  loadById(idParam)
+} else {
+  if (load() && Object.keys(state.answers).length > 0) $('resume').hidden = false
 }

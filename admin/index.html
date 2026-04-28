@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin — Sales Report Card</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BioRhyme:wght@700&family=DM+Sans:wght@400;500;700&display=swap" />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="admin.css" />
+    <script defer src="admin.js"></script>
+  </head>
+  <body>
+    <header id="topbar">
+      <img alt="The Scale Summit" id="brand-logo" src="../scale-summit-logo.png" />
+      <div class="tagline">Admin</div>
+      <a class="button button-ghost" href="../">← Back to app</a>
+    </header>
+
+    <main id="app">
+      <div id="admin-header">
+        <h1>Entries</h1>
+        <button class="button button-ghost" id="refresh" type="button">Refresh</button>
+      </div>
+
+      <div id="status" class="loading">Loading entries…</div>
+
+      <div id="table-wrap" class="hidden">
+        <table id="entries">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Email</th>
+              <th>Score</th>
+              <th>Grade</th>
+              <th>Step</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>
