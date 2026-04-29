@@ -123,6 +123,7 @@ const load = () => {
 }
 
 const captureLead = (report = null) => {
+  if (!state.sessionId) return
   fetch(LEAD_CAPTURE_URL, {
     body: JSON.stringify({ answers: state.answers, email: state.email, name: state.name, report, sessionId: state.sessionId }),
     method: 'POST',
