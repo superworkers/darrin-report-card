@@ -54,9 +54,14 @@ p {
   padding: 1rem 2rem;
 }
 
-#header-restart {
-  margin-left: auto;
+#header-simulate {
   font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+}
+
+#header-restart {
+  font-size: 0.875rem;
+  margin-left: auto;
   padding: 0.5rem 1rem;
 }
 
@@ -578,6 +583,18 @@ p {
   color: var(--color-darker);
   font-size: 0.9375rem;
   line-height: 1.6;
+}
+
+/* Share */
+#share-section:not(.hidden) {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+#share-section h3 {
+  margin: 0;
 }
 
 /* Report CTA */

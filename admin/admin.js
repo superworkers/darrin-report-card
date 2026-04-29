@@ -35,7 +35,7 @@ const renderRows = entries => {
   if (!entries.length) {
     const tr = document.createElement('tr')
     const td = document.createElement('td')
-    td.colSpan = 6
+    td.colSpan = 7
     td.className = 'empty'
     td.textContent = 'No entries yet.'
     tr.appendChild(td)
@@ -49,6 +49,7 @@ const renderRows = entries => {
 
     const cells = [
       formatDate(entry.timestamp),
+      entry.name || '—',
       entry.email || '—',
       score ?? '—',
       score != null ? scoreLetter(score) : '—',
@@ -58,7 +59,7 @@ const renderRows = entries => {
     cells.forEach((text, i) => {
       const td = document.createElement('td')
       td.textContent = text
-      if (i === 3 && score != null) {
+      if (i === 4 && score != null) {
         td.className = `grade-cell grade-${scoreLetter(score)}`
       }
       tr.appendChild(td)

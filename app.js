@@ -415,6 +415,7 @@ const renderReport = report => {
     })
     show('challenges-section')
   }
+  show('share-section')
   show('report-cta')
 }
 
@@ -467,6 +468,7 @@ const renderLoadingState = () => {
 
   $('challenge-cards').textContent = ''
   hide('challenges-section')
+  hide('share-section')
   hide('report-cta')
 }
 
@@ -491,6 +493,7 @@ const loadById = async id => {
   hide('intro')
   hide('intake')
   show('report')
+  $('header-restart').hidden = false
 
   const cached = localStorage.getItem(`${STORAGE_KEY}-report-${id}`)
   if (cached) {
@@ -523,7 +526,10 @@ $('start').addEventListener('click', () => {
   captureLead()
   startIntake(false)
 })
-$('resume').addEventListener('click', () => startIntake(true))
+$('resume').addEventListener('click', () => {
+  $('header-restart').hidden = false
+  startIntake(true)
+})
 
 $('back').addEventListener('click', () => {
   if (state.step > 0) {
@@ -539,6 +545,7 @@ $('next').addEventListener('click', () => {
     alert('Please answer before continuing.')
     return
   }
+  $('header-restart').hidden = false
   if (state.step === questions.length - 1) {
     $('progress-bar').style.width = '100%'
     show('modal-overlay')
@@ -586,10 +593,19 @@ const restart = () => {
   hide('report')
   hide('intake')
   show('intro')
+  $('header-restart').hidden = true
   $('resume').hidden = true
 }
 
 $('header-restart').addEventListener('click', restart)
+
+$('copy-link').addEventListener('click', () => {
+  const url = `${location.origin}${location.pathname}?id=${state.sessionId}`
+  navigator.clipboard.writeText(url).then(() => {
+    $('copy-link').textContent = 'Copied!'
+    setTimeout(() => { $('copy-link').textContent = 'Copy link to clipboard' }, 2000)
+  })
+})
 
 $('brand-link').addEventListener('click', e => {
   e.preventDefault()
@@ -603,76 +619,66 @@ $('brand-link').addEventListener('click', e => {
 
 
 
-const simulateAnswer = async () => {
-  const q = questions[state.step]
-  const btn = $('simulate')
+const simulateAll = async () => {
+  const btn = $('header-simulate')
   btn.disabled = true
-  const original = btn.textContent
   btn.textContent = '✨ Generating…'
 
-  const priorContext = questions
-    .slice(0, state.step)
-    .map(pq => {
-      const a = getAnswerText(pq.id)
-      return a ? `Q: ${pq.prompt}\nA: ${a}` : null
-    })
-    .filter(Boolean)
-    .join('\n\n')
+  state.sessionId = crypto.randomUUID()
+  state.answers = {}
+  state.step = 0
+  save()
+  startIntake(false)
 
   const qualityPool = ['strong', 'strong', 'weak', 'weak', 'mid', 'mid']
-  const quality = qualityPool[Math.floor(Math.random() * qualityPool.length)]
-
   const qualityGuidance = {
-    strong: `Write a STRONG answer (would earn an A). Specific, concrete, differentiated, outcome-framed, no buzzwords.`,
-    mid: `Write a MEDIOCRE answer (would earn a C or C-). Some specificity but leans heavily on generic phrases and buzzwords. Directionally right but not distinct.`,
-    weak: `Write a POOR answer (would earn a D or F). Vague, confused, full of buzzwords, broad undefined audience, features not benefits, no clear differentiator or completely missing the point.`,
-  }
-
-  const body = {
-    input: `You are a bootstrapped solopreneur being interviewed about your sales foundation. Generate a ${quality} quality answer for demo purposes.
-
-${qualityGuidance[quality]}
-
-Stay consistent with prior answers (same business, same founder). Keep length natural — 1-3 sentences for short fields, a short paragraph for longer ones.
-
-${priorContext ? `Prior answers:\n${priorContext}\n\n` : ''}Question: ${q.prompt}
-
-Respond with ONLY the answer text.`,
-    instructions: `Generating demo answers for a sales coaching intake. This question targets ${quality} quality.`,
-    model: 'gpt-4.1',
+    strong: 'Write a STRONG answer (would earn an A). Specific, concrete, differentiated, outcome-framed, no buzzwords.',
+    mid: 'Write a MEDIOCRE answer (would earn a C or C-). Some specificity but leans heavily on generic phrases and buzzwords. Directionally right but not distinct.',
+    weak: 'Write a POOR answer (would earn a D or F). Vague, confused, full of buzzwords, broad undefined audience, features not benefits, no clear differentiator or completely missing the point.',
   }
 
   try {
-    const res = await fetch(ENDPOINT, {
-      body: JSON.stringify(body),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    })
-    if (!res.ok) throw new Error(`API ${res.status}`)
-    const result = await res.json()
-    const text = (result.output_text || '').trim()
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i]
+      const quality = qualityPool[Math.floor(Math.random() * qualityPool.length)]
+      const priorContext = questions.slice(0, i)
+        .map(pq => { const a = getAnswerText(pq.id); return a ? `Q: ${pq.prompt}\nA: ${a}` : null })
+        .filter(Boolean).join('\n\n')
 
-    if (q.type === 'text' || q.type === 'textarea') {
-      state.answers[q.id] = text
-    } else if (q.type === 'textarea-with-options') {
-      state.answers[q.id] = { option: null, text }
-    } else if (q.type === 'multi-with-textarea') {
-      const pool = q.options.map(o => o.value)
-      const n = 1 + Math.floor(Math.random() * Math.min(3, pool.length))
-      const selected = pool.sort(() => Math.random() - 0.5).slice(0, n)
-      state.answers[q.id] = { selected, text }
+      const res = await fetch(ENDPOINT, {
+        body: JSON.stringify({
+          input: `You are a bootstrapped solopreneur being interviewed about your sales foundation. Generate a ${quality} quality answer for demo purposes.\n\n${qualityGuidance[quality]}\n\nStay consistent with prior answers (same business, same founder). Keep length natural — 1-3 sentences for short fields, a short paragraph for longer ones.\n\n${priorContext ? `Prior answers:\n${priorContext}\n\n` : ''}Question: ${q.prompt}\n\nRespond with ONLY the answer text.`,
+          instructions: `Generating demo answers for a sales coaching intake. This question targets ${quality} quality.`,
+          model: 'gpt-4.1',
+        }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      })
+      if (!res.ok) throw new Error(`API ${res.status}`)
+      const text = ((await res.json()).output_text || '').trim()
+
+      if (q.type === 'text' || q.type === 'textarea') state.answers[q.id] = text
+      else if (q.type === 'textarea-with-options') state.answers[q.id] = { option: null, text }
+
+      state.step = i
+      save()
+      renderStep()
     }
+    state.step = questions.length - 1
     save()
     renderStep()
   } catch (err) {
     alert(`Simulation failed: ${err.message}`)
   } finally {
     btn.disabled = false
-    btn.textContent = original
+    btn.textContent = '✨ Simulate'
   }
 }
 
-$('simulate').addEventListener('click', simulateAnswer)
+if (new URLSearchParams(location.search).get('demo') === '1') {
+  $('header-simulate').hidden = false
+  $('header-simulate').addEventListener('click', simulateAll)
+}
 
 fetch('DARREN.md').then(r => r.text()).then(t => { darrinContext = t }).catch(() => {})
 
